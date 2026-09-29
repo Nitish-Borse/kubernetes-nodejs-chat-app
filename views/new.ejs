@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Write new chat</title>
+    <style>
+        body {
+           display: flex;
+           flex-direction: column;
+           align-items: center;
+        }
+    </style>
+</head>
+<body>
+    <h3>Write a new chat...</h3>
+    <form method="post" action="/chats">
+        <input name="from" placeholder="who are you(sender)">
+        <br><br>
+        <textarea name="msg" placeholder="Write your massage here..."></textarea>
+        <br><br>
+        <input name="to" placeholder="add reciver">
+        <br><br>
+        <button>Create Chat</button>
+    </form>
+</body>
+</html>

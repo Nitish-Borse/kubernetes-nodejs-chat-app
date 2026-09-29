@@ -1,0 +1,24 @@
+{
+  "name": "nodejs-kubernetes-chat-app",
+  "version": "1.0.0",
+  "description": "Node.js chat application deployed on Kubernetes with MongoDB, persistent storage, Ingress, health probes, and HPA.",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js"
+  },
+  "keywords": [
+    "nodejs",
+    "express",
+    "mongodb",
+    "kubernetes",
+    "docker"
+  ],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "ejs": "^3.1.10",
+    "express": "^5.1.0",
+    "method-override": "^3.0.0",
+    "mongoose": "^8.16.5"
+  }
+}
