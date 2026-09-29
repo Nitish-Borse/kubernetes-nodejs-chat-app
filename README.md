@@ -152,13 +152,13 @@ k8s/
 Build the image:
 
 ```bash
-docker build -t <your-dockerhub-user>/chatapp-img:v1 .
+docker build -t nitishborse/chatapp-img:v1 .
 ```
 
 Push the image:
 
 ```bash
-docker push <your-dockerhub-user>/chatapp-img:v1
+docker push nitishborse/chatapp-img:v1
 ```
 
 Before deploying, update the image in `k8s/app-deployment.yml`.
@@ -166,7 +166,7 @@ Before deploying, update the image in `k8s/app-deployment.yml`.
 Example:
 
 ```yaml
-image: <your-dockerhub-user>/chatapp-img:v1
+image: nitishborse/chatapp-img:v1
 ```
 
 ## Prerequisites
