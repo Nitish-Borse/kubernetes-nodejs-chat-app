@@ -4,36 +4,44 @@ A hands-on Kubernetes portfolio project that deploys a Dockerized Node.js/Expres
 
 ## Architecture
 
+![Kubernetes Node.js Chat Application Architecture](screenshots/00-kubernetes-architecture.png)
+
+### Architecture Overview
+
 ```text
-Internet
-   |
-   v
+Internet / Users
+       |
+       v
 NGINX Ingress Controller
-   |
-   v
+       |
+       v
 chats-ingress
-   |
-   v
-chats-app-service (ClusterIP)
-   |
-   v
+       |
+       v
+chats-app-service (ClusterIP :8080)
+       |
+       v
 Node.js Application Pods
-   |
-   v
-mongodb-service (ClusterIP)
-   |
-   v
+       |
+       v
+mongodb-service (ClusterIP :27017)
+       |
+       v
 MongoDB Pod
-   |
-   v
+       |
+       v
 mongodb-pvc
-   |
-   v
+       |
+       v
 mongodb-pv
-   |
-   v
-/mnt/data/mongodb on the worker node
+       |
+       v
+/mnt/data/mongodb on Kubernetes worker node
 ```
+
+The application runs in the `chat-app` namespace.
+
+The Node.js Deployment can scale from 1 to 4 replicas using the Horizontal Pod Autoscaler based on CPU utilization.
 
 ## Technologies
 
@@ -49,6 +57,23 @@ mongodb-pv
 - PersistentVolumeClaim (PVC)
 - Horizontal Pod Autoscaler (HPA)
 - Kubernetes Metrics Server
+
+## Key Kubernetes Concepts Demonstrated
+
+- Kubernetes Namespace isolation
+- Deployment and replica management
+- ClusterIP Services
+- NGINX Ingress
+- Startup, liveness, and readiness probes
+- CPU and memory resource requests and limits
+- Horizontal Pod Autoscaling
+- Metrics Server
+- PersistentVolumes and PersistentVolumeClaims
+- Local persistent storage
+- Node affinity
+- Application-to-database communication through Kubernetes Services
+- Kubernetes manifest validation
+- Basic Kubernetes troubleshooting
 
 ## Application Features
 
@@ -105,7 +130,15 @@ MongoDB uses a PersistentVolume, PersistentVolumeClaim, and local storage at:
 /mnt/data/mongodb
 ```
 
-The PV uses node affinity so Kubernetes schedules the MongoDB pod on the node where the local storage exists.
+The PV uses node affinity so Kubernetes schedules the MongoDB pod on the worker node where the local storage exists.
+
+Before deploying, make sure the worker node contains:
+
+```text
+/mnt/data/mongodb
+```
+
+The hostname configured in `k8s/mongodb-pv.yml` must match the Kubernetes worker node that contains this directory.
 
 > **Note:** This local PV design is intended for this kubeadm learning environment. The database storage is tied to the worker node and is not presented as a production-grade highly available MongoDB architecture.
 
@@ -161,7 +194,7 @@ Push the image:
 docker push nitishborse/chatapp-img:v1
 ```
 
-Before deploying, update the image in `k8s/app-deployment.yml`.
+Before deploying, update the image in `k8s/app-deployment.yml` if you use a different image.
 
 Example:
 
@@ -176,7 +209,8 @@ image: nitishborse/chatapp-img:v1
 - A CNI plugin such as Calico
 - NGINX Ingress Controller
 - Metrics Server for HPA
-- A worker node containing `/mnt/data/mongodb`
+- A Kubernetes worker node containing `/mnt/data/mongodb`
+- A local PersistentVolume configured with node affinity for that worker node
 
 ## Deployment
 
@@ -191,6 +225,13 @@ kubectl apply -f k8s/namespace.yml
 ```bash
 kubectl apply -f k8s/mongodb-pv.yml
 kubectl apply -f k8s/mongodb-pvc.yml
+```
+
+Verify the storage:
+
+```bash
+kubectl get pv
+kubectl get pvc -n chat-app
 ```
 
 ### 3. Deploy MongoDB
@@ -223,12 +264,34 @@ kubectl apply -f k8s/hpa.yml
 
 ## Verify the Deployment
 
+Check the application resources:
+
 ```bash
 kubectl get all -n chat-app
+```
+
+Check persistent storage:
+
+```bash
 kubectl get pv
 kubectl get pvc -n chat-app
+```
+
+Check Ingress:
+
+```bash
 kubectl get ingress -n chat-app
+```
+
+Check HPA:
+
+```bash
 kubectl get hpa -n chat-app
+```
+
+Check node and pod metrics:
+
+```bash
 kubectl top nodes
 kubectl top pods -n chat-app
 ```
@@ -265,9 +328,31 @@ Check service endpoints:
 kubectl get endpoints -n chat-app
 ```
 
+Check pod status:
+
+```bash
+kubectl get pods -n chat-app -o wide
+```
+
+Check the Deployment:
+
+```bash
+kubectl get deployment -n chat-app
+```
+
+Check HPA details:
+
+```bash
+kubectl describe hpa chatsapp-hpa -n chat-app
+```
+
 ## Screenshots
 
 The `screenshots/` directory contains evidence of the deployed application and Kubernetes configuration.
+
+### Kubernetes Architecture
+
+![Kubernetes Architecture](screenshots/00-kubernetes-architecture.png)
 
 ### Application
 
@@ -314,13 +399,13 @@ After the artificial CPU load was stopped, the HPA scaled the application back d
 - Node affinity
 - Docker image deployment
 - Application-to-database communication using Kubernetes Services
-- Basic Kubernetes troubleshooting
 - Kubernetes manifest validation
+- Basic Kubernetes troubleshooting
 
 ## Project Structure
 
 ```text
-nodejs-kubernetes/
+kubernetes-nodejs-chat-app/
 ├── .dockerignore
 ├── .gitignore
 ├── Dockerfile
@@ -338,6 +423,7 @@ nodejs-kubernetes/
 │   ├── index.ejs
 │   └── new.ejs
 ├── screenshots/
+│   ├── 00-kubernetes-architecture.png
 │   ├── application-top.png
 │   ├── application-bottom.png
 │   ├── kubernetes-resources.png
@@ -356,6 +442,44 @@ nodejs-kubernetes/
     ├── mongodb-pvc.yml
     └── hpa.yml
 ```
+
+## Project Limitations
+
+This project is designed for learning and portfolio demonstration rather than production deployment.
+
+- MongoDB runs as a single-replica Deployment.
+- MongoDB uses local PersistentVolume storage tied to a Kubernetes worker node.
+- The local storage configuration is not highly available.
+- The Kubernetes cluster is a kubeadm-based learning environment.
+- Metrics Server uses the documented kubelet TLS workaround required by this cluster.
+- The project does not include production-grade database replication, backup, or disaster recovery.
+- The Node.js application is focused on demonstrating Kubernetes deployment and operations rather than production application architecture.
+
+## Cleanup
+
+Remove the application resources from the cluster:
+
+```bash
+kubectl delete -f k8s/hpa.yml
+kubectl delete -f k8s/app-ingress.yml
+kubectl delete -f k8s/app-service.yml
+kubectl delete -f k8s/app-deployment.yml
+kubectl delete -f k8s/mongodb-service.yml
+kubectl delete -f k8s/mongodb-deployment.yml
+kubectl delete -f k8s/mongodb-pvc.yml
+kubectl delete -f k8s/mongodb-pv.yml
+kubectl delete -f k8s/namespace.yml
+```
+
+Because the PersistentVolume uses `Retain`, deleting the PVC/PV does not automatically remove the local MongoDB data.
+
+If you no longer need the local MongoDB data, remove it from the worker node:
+
+```bash
+sudo rm -rf /mnt/data/mongodb/*
+```
+
+> Only remove the local database files when you are sure the stored data is no longer required.
 
 ## Notes
 
